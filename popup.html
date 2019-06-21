@@ -10,14 +10,15 @@
         width: 80px;
       }
       #diff-container { width: 450px; display: none; }
-      #diff-container div { border: 1px solid #eee; padding: 4px; }
+      #diff-container div { border: 1px solid #ccc; padding: 4px; }
     </style>
   </head>
   <body>
     <div id="button-container">
-      <button id="govwifi-admin" class="compare-releases">Admin</button>
-      <button id="govwifi-user-signup-api" class="compare-releases">Signup</button>
-      <button id="govwifi-logging-api" class="compare-releases">Logging</button>
+      <select id="repo-name">
+        <option value="default">Select project</option>
+      </select>
+      <a href="/options.html">Configure</a>
     </div>
     <div id="diff-container"></div>
     <script src="compare-releases.js"></script>
