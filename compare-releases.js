@@ -3,72 +3,62 @@ const localStorageKey = 'concourseDiffData'
 const configKeys = ['githubOAuthToken', 'githubOrgName', 'concourseBaseUrl', 'concourseTeamName']
 
 let config = {}
+let concourseData = {}
 
-// TODO : Deploy job info should be in config. It would be ideal to get all team and project specifics from config.
-let concourseData = {
-  'govwifi-admin' : {
-    staging : {
-      name : 'Admin Staging Deploy'
-    },
-    production : {
-      name : 'Admin Production Deploy'
-    }
-  },
-  'govwifi-user-signup-api' : {
-    staging : {
-      name : 'User Signup API Staging Deploy'
-    },
-    production : {
-      name: 'User Signup API Production Deploy'
-    }
-  },
-  'govwifi-logging-api' : {
-    staging : {
-      name : 'Logging API Staging Deploy'
-    },
-    production : {
-      name : 'Logging API Production Deploy'
-    }
-  }
-}
+let repoSelectEl = document.getElementById('repo-name')
 
 let initialise = () => {
   initialiseConfig()
 
-  let compareButtons = document.getElementsByClassName('compare-releases')
+  repoSelectEl.onchange = (element) => {
+    let repoName = element.target.options[element.target.selectedIndex].value
+    if (repoName === 'default') return;
 
-  for (var compareButton of compareButtons) {
-    compareButton.onclick = (element) => {
-      let repoName = element.target.id
-      let concourseJobsUrl = `${config.concourseBaseUrl}/api/v1/teams/${config.concourseTeamName}/pipelines/deploy/jobs`
+    let concourseJobsUrl = `${config.concourseBaseUrl}/api/v1/teams/${config.concourseTeamName}/pipelines/deploy/jobs`
 
-      getJSON({ url: concourseJobsUrl })
-        .then(data => {
-          populateConcourseBuildUrls(data, repoName)
+    getJSON({ url: concourseJobsUrl })
+      .then(data => {
+        populateConcourseBuildUrls(data, repoName)
 
-          chrome.storage.local.get(localStorageKey, data => {
-            if (data !== null && data[repoName] === concourseData[repoName]) {
-              renderDiff(data[repoName])
-            } else {
-              fetchAndRenderDiff(repoName)
-            }
-          })
+        chrome.storage.local.get(localStorageKey, data => {
+          if (data !== null && data[repoName] === concourseData[repoName]) {
+            renderDiff(data[repoName])
+          } else {
+            fetchAndRenderDiff(repoName)
+          }
         })
-    }
+      })
   }
+}
+
+let initialiseRepoSelect = () => {
+  Object.keys(concourseData).forEach(key => {
+    let selectOption = document.createElement('option')
+    selectOption.value = key
+    selectOption.label = key
+    repoSelectEl.appendChild(selectOption)
+  })
 }
 
 let initialiseConfig = () => {
   chrome.storage.local.get(configKeys, (data) => {
     for (var key of configKeys) {
+      if (data[key] == null) document.location.href = '/options.html'
       config[key] = data[key]
     }
+
+    fetch(`data/${config.concourseTeamName}.json`)
+      .then(response => { return response.json() })
+      .then(json => {
+        concourseData = json
+        initialiseRepoSelect()
+      })
   })
 }
 
 let renderDiff = diffData => {
   let diffContainer = document.getElementById('diff-container')
-  let truncate = (str) => { return str.substring(0, 75) + '...' }
+  let truncate = (str) => { return str.substring(0, 70) + '...' }
   diffContainer.innerHTML = ''
 
   if (diffData.commits.length === 0) {
@@ -93,8 +83,8 @@ let renderDiff = diffData => {
 let populateConcourseBuildUrls = (json, repoName) => {
   for (var env of environments) {
     let job = json.find((item) => { return item.name === concourseData[repoName][env].name })
-    if (job != null) {
-      concourseData[repoName][env].buildUrl = `${config.concourseBaseUrl}${job['finished_build']['api_url']}/resources`
+    if (job != null && job.finished_build != null) {
+      concourseData[repoName][env].buildUrl = `${config.concourseBaseUrl}${job.finished_build.api_url}/resources`
     }
   }
 }
