@@ -2,15 +2,22 @@
 <html>
   <head>
     <title>Concourse info options</title>
+    <style>
+      #options input { width: 400px; }
+    </style>
   </head>
   <body>
+    <h1>Concourse info config</h1>
     <div id="options">
       <h2>Github settings</h2>
+
+      <p id="message"></p>
+
       <p>
         <input type="text" id="github-oauth-token" placeholder="Github OAuth Token"/>
       </p>
       <p>
-        <input type="text" id="github-org-name" placeholder="Github organisation name"/>
+        <input type="text" id="github-org-name" placeholder="Github organisation name" value="alphagov"/>
       </p>
 
       <hr />
@@ -23,8 +30,6 @@
       </p>
 
       <button id="save">Save</button>
-
-      <p id="message"></p>
 
       <script src="options.js"></script>
   </body>
