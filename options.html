@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Concourse info options</title>
+  </head>
+  <body>
+    <div id="options">
+      <h2>Github settings</h2>
+      <p>
+        <input type="text" id="github-oauth-token" placeholder="Github OAuth Token"/>
+      </p>
+      <p>
+        <input type="text" id="github-org-name" placeholder="Github organisation name"/>
+      </p>
+
+      <hr />
+      <h2>Concourse settings</h2>
+      <p>
+        <input type="text" id="concourse-base-url" placeholder="Concourse URL"/>
+      </p>
+      <p>
+        <input type="text" id="concourse-team-name" placeholder="Concourse team name"/>
+      </p>
+
+      <button id="save">Save</button>
+
+      <p id="message"></p>
+
+      <script src="options.js"></script>
+  </body>
+</html>

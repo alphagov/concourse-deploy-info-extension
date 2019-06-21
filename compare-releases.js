@@ -1,14 +1,8 @@
-const githubTeam = 'alphagov'
-const concourseTeam = 'govwifi'
 const environments = ['staging', 'production']
 const localStorageKey = 'concourseDiffData'
+const configKeys = ['githubOAuthToken', 'githubOrgName', 'concourseBaseUrl', 'concourseTeamName']
 
-// FIXME : This should come from settings/config
-const githubOAuthToken = 'xxxxxxxxxxxxxxxxxxxxxxxxxxx'
-
-const githubApiBaseUrl = `https://api.github.com/repos/${githubTeam}/`
-const concourseBaseUrl = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-const concourseJobsUrl = `${concourseBaseUrl}/api/v1/teams/${concourseTeam}/pipelines/deploy/jobs`
+let config = {}
 
 // TODO : Deploy job info should be in config. It would be ideal to get all team and project specifics from config.
 let concourseData = {
@@ -39,11 +33,15 @@ let concourseData = {
 }
 
 let initialise = () => {
+  initialiseConfig()
+
   let compareButtons = document.getElementsByClassName('compare-releases')
 
   for (var compareButton of compareButtons) {
     compareButton.onclick = (element) => {
       let repoName = element.target.id
+      let concourseJobsUrl = `${config.concourseBaseUrl}/api/v1/teams/${config.concourseTeamName}/pipelines/deploy/jobs`
+
       getJSON({ url: concourseJobsUrl })
         .then(data => {
           populateConcourseBuildUrls(data, repoName)
@@ -58,6 +56,14 @@ let initialise = () => {
         })
     }
   }
+}
+
+let initialiseConfig = () => {
+  chrome.storage.local.get(configKeys, (data) => {
+    for (var key of configKeys) {
+      config[key] = data[key]
+    }
+  })
 }
 
 let renderDiff = diffData => {
@@ -88,7 +94,7 @@ let populateConcourseBuildUrls = (json, repoName) => {
   for (var env of environments) {
     let job = json.find((item) => { return item.name === concourseData[repoName][env].name })
     if (job != null) {
-      concourseData[repoName][env].buildUrl = `${concourseBaseUrl}${job['finished_build']['api_url']}/resources`
+      concourseData[repoName][env].buildUrl = `${config.concourseBaseUrl}${job['finished_build']['api_url']}/resources`
     }
   }
 }
@@ -99,7 +105,7 @@ let fetchAndRenderDiff = repoName => {
     .then((shas) => {
       getJSON({
           url : githubCompareUrl(repoName, shas[1], shas[0]),
-          headers : { 'Authorization' : `token ${githubOAuthToken}` }
+          headers : { 'Authorization' : `token ${config.githubOAuthToken}` }
         })
         .then(json => {
           concourseData[repoName].commits = json.commits
@@ -143,7 +149,7 @@ let getJSON = obj => {
 }
 
 let githubCompareUrl = (repoName, from, to) => {
-  return `${githubApiBaseUrl}${repoName}/compare/${from}...${to}`
+  return `https://api.github.com/repos/${config.githubOrgName}/${repoName}/compare/${from}...${to}`
 }
 
 initialise()

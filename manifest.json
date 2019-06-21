@@ -8,6 +8,7 @@
     "https://cd.gds-reliability.engineering/api/v1/",
     "https://api.github.com/repos/alphagov/"
   ],
+  "options_page": "options.html",
   "background": {
     "scripts": ["background.js"],
     "persistent": false
