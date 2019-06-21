@@ -22,6 +22,7 @@
       "128": "images/get_started128.png"
     }
   },
+  "web_accessible_resources": ["data/*.json"],
   "icons": {
     "16": "images/get_started16.png",
     "32": "images/get_started32.png",

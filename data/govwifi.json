@@ -1,0 +1,50 @@
+{
+  "govwifi-admin" : {
+    "staging" : {
+      "name" : "Admin Staging Deploy"
+    },
+    "production" : {
+      "name" : "Admin Production Deploy"
+    }
+  },
+  "govwifi-authentication-api" : {
+    "staging" : {
+      "name" : "Authentication API Staging Deploy"
+    },
+    "production" : {
+      "name" : "Authentication API Production Deploy"
+    }
+  },
+  "govwifi-frontend" : {
+    "staging" : {
+      "name" : "Frontend Staging Deploy"
+    },
+    "production" : {
+      "name" : "Frontend Production Deploy"
+    }
+  },
+  "govwifi-logging-api" : {
+    "staging" : {
+      "name" : "Logging API Staging Deploy"
+    },
+    "production" : {
+      "name" : "Logging API Production Deploy"
+    }
+  },
+  "govwifi-safe-restarter" : {
+    "staging" : {
+      "name" : "Safe Restarter Staging Deploy"
+    },
+    "production" : {
+      "name" : "Safe Restarter Production Deploy"
+    }
+  },
+  "govwifi-user-signup-api" : {
+    "staging" : {
+      "name" : "User Signup API Staging Deploy"
+    },
+    "production" : {
+      "name": "User Signup API Production Deploy"
+    }
+  }
+}
