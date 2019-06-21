@@ -1,9 +1,16 @@
-const githubApiBaseUrl = 'https://api.github.com/repos/alphagov/'
-const concourseBaseUrl = 'https://cd.gds-reliability.engineering'
-const concourseJobsUrl = `${concourseBaseUrl}/api/v1/teams/govwifi/pipelines/deploy/jobs`
+const githubTeam = 'alphagov'
+const concourseTeam = 'govwifi'
 const environments = ['staging', 'production']
+const localStorageKey = 'concourseDiffData'
 
-// TODO : deploy job info should be in config. It would be ideal to get all team and project specifics from config.
+// FIXME : This should come from settings/config
+const githubOAuthToken = 'xxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+const githubApiBaseUrl = `https://api.github.com/repos/${githubTeam}/`
+const concourseBaseUrl = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+const concourseJobsUrl = `${concourseBaseUrl}/api/v1/teams/${concourseTeam}/pipelines/deploy/jobs`
+
+// TODO : Deploy job info should be in config. It would be ideal to get all team and project specifics from config.
 let concourseData = {
   'govwifi-admin' : {
     staging : {
@@ -29,67 +36,92 @@ let concourseData = {
       name : 'Logging API Production Deploy'
     }
   }
-};
-
-let githubData = {
-  'oauthToken' : ''
 }
 
-let initialise = function() {
+let initialise = () => {
   let compareButtons = document.getElementsByClassName('compare-releases')
 
   for (var compareButton of compareButtons) {
     compareButton.onclick = (element) => {
       let repoName = element.target.id
-      req({ url: concourseJobsUrl })
+      getJSON({ url: concourseJobsUrl })
         .then(data => {
           populateConcourseBuildUrls(data, repoName)
-          // TODO: compare the urls to those in storage
-          fetchGithubCommits(repoName)
+
+          chrome.storage.local.get(localStorageKey, data => {
+            if (data !== null && data[repoName] === concourseData[repoName]) {
+              renderDiff(data[repoName])
+            } else {
+              fetchAndRenderDiff(repoName)
+            }
+          })
         })
     }
   }
 }
 
-let populateConcourseBuildUrls = (data, repoName) => {
-  let json = JSON.parse(data)
+let renderDiff = diffData => {
+  let diffContainer = document.getElementById('diff-container')
+  let truncate = (str) => { return str.substring(0, 75) + '...' }
+  diffContainer.innerHTML = ''
+
+  if (diffData.commits.length === 0) {
+    let messageElement = document.createElement('div')
+    messageElement.textContent = 'No difference between deployments'
+    diffContainer.appendChild(messageElement)
+  } else {
+    for (var commit of diffData.commits) {
+      let item = document.createElement('div')
+      let link = document.createElement('a')
+      link.textContent = truncate(commit.commit.message)
+      link.href = commit.html_url
+      link.target = '_blank'
+      item.appendChild(link)
+      diffContainer.appendChild(item)
+    }
+  }
+
+  diffContainer.style.display = 'table'
+}
+
+let populateConcourseBuildUrls = (json, repoName) => {
   for (var env of environments) {
-    let job = json.find((item) => {
-      return item.name === concourseData[repoName][env].name
-    })
+    let job = json.find((item) => { return item.name === concourseData[repoName][env].name })
     if (job != null) {
       concourseData[repoName][env].buildUrl = `${concourseBaseUrl}${job['finished_build']['api_url']}/resources`
     }
   }
 }
 
-let fetchGithubCommits = repoName => {
+let fetchAndRenderDiff = repoName => {
   let promises = environments.map(env => fetchBuildCommitSha(repoName, env))
   Promise.all(promises)
     .then((shas) => {
-      req({
+      getJSON({
           url : githubCompareUrl(repoName, shas[1], shas[0]),
-          headers : { 'Authorization' : `token ${githubData.oauthToken}` }
+          headers : { 'Authorization' : `token ${githubOAuthToken}` }
         })
-        .then(data => {
-          let json = JSON.parse(data)
-          githubData[repoName].commits = json.commits
+        .then(json => {
+          concourseData[repoName].commits = json.commits
+          // Save to local storage and render
+          chrome.storage.local.set({ localStorageKey : concourseData[repoName] }, () => {
+            renderDiff(concourseData[repoName])
+          })
         })
     })
 }
 
 let fetchBuildCommitSha = (repoName, env) => {
   return new Promise((resolve) => {
-    req({ url : concourseData[repoName][env].buildUrl })
-      .then(data => {
-        let json = JSON.parse(data)
+    getJSON({ url : concourseData[repoName][env].buildUrl })
+      .then(json => {
         let input = json.inputs.find((item) => { return item.name === 'src' })
         resolve(input.version.ref)
     })
   })
 }
 
-let req = obj => {
+let getJSON = obj => {
   return new Promise((resolve, reject) => {
     let xhr = new XMLHttpRequest()
     xhr.open('GET', obj.url, true)
@@ -100,7 +132,7 @@ let req = obj => {
     }
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(xhr.responseText)
+        resolve(JSON.parse(xhr.responseText))
       } else {
         reject(xhr.statusText)
       }
