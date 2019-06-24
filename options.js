@@ -3,6 +3,10 @@ let githubOrgNameEl     = document.getElementById('github-org-name')
 let concourseBaseUrlEl  = document.getElementById('concourse-base-url')
 let concourseTeamNameEl = document.getElementById('concourse-team-name')
 
+/**
+ * Load existing stored config.
+ * Supply some sensible defaults for missing data.
+ */
 let loadOptions = () => {
   chrome.storage.local.get([
     'githubOAuthToken',
@@ -17,6 +21,9 @@ let loadOptions = () => {
   })
 }
 
+/**
+ * Save config from UI to local storage.
+ */
 let saveOptions = () => {
   let githubOAuthToken  = githubOAuthTokenEl.value
   let githubOrgName     = githubOrgNameEl.value
@@ -31,6 +38,8 @@ let saveOptions = () => {
   }, () => { setTimeout(() => { document.location.href = '/popup.html' }, 750) })
 }
 
+// Bind save button to save options function.
 document.getElementById('save').addEventListener('click', saveOptions)
 
+// Load existing options, if any, when this script is called.
 loadOptions()
