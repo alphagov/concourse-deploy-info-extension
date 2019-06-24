@@ -6,6 +6,7 @@ let config = {}
 let concourseData = {}
 
 let repoSelectEl = document.getElementById('repo-name')
+let diffContainer = document.getElementById('diff-container')
 
 let initialise = () => {
   initialiseConfig()
@@ -43,7 +44,7 @@ let initialiseRepoSelect = () => {
 let initialiseConfig = () => {
   chrome.storage.local.get(configKeys, (data) => {
     for (var key of configKeys) {
-      if (data[key] == null) document.location.href = '/options.html'
+      if (data[key] == null) return document.location.href = '/options.html'
       config[key] = data[key]
     }
 
@@ -57,14 +58,11 @@ let initialiseConfig = () => {
 }
 
 let renderDiff = diffData => {
-  let diffContainer = document.getElementById('diff-container')
   let truncate = (str) => { return str.substring(0, 70) + '...' }
   diffContainer.innerHTML = ''
 
   if (diffData.commits.length === 0) {
-    let messageElement = document.createElement('div')
-    messageElement.textContent = 'No difference between deployments'
-    diffContainer.appendChild(messageElement)
+    diffContainer.innerHTML = 'No difference between deployments'
   } else {
     for (var commit of diffData.commits) {
       let item = document.createElement('div')
@@ -105,15 +103,24 @@ let fetchAndRenderDiff = repoName => {
           })
         })
     })
+    .catch(e => {
+      diffContainer.innerText = 'One or more environments has no finished build data'
+      diffContainer.style.display = 'table'
+    })
 }
 
 let fetchBuildCommitSha = (repoName, env) => {
-  return new Promise((resolve) => {
-    getJSON({ url : concourseData[repoName][env].buildUrl })
-      .then(json => {
-        let input = json.inputs.find((item) => { return item.name === 'src' })
-        resolve(input.version.ref)
-    })
+  return new Promise((resolve, reject) => {
+    let buildUrl = concourseData[repoName][env].buildUrl
+    if (buildUrl == null) {
+      reject(null)
+    } else {
+      getJSON({ url : concourseData[repoName][env].buildUrl })
+        .then(json => {
+          let input = json.inputs.find((item) => { return item.name === 'src' })
+          resolve(input.version.ref)
+        })
+    }
   })
 }
 
