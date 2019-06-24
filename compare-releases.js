@@ -18,8 +18,10 @@ let initialise = () => {
     let concourseJobsUrl = `${config.concourseBaseUrl}/api/v1/teams/${config.concourseTeamName}/pipelines/deploy/jobs`
 
     getJSON({ url: concourseJobsUrl })
-      .then(data => {
-        populateConcourseBuildUrls(data, repoName)
+      .then(json => {
+        if (json == null) return
+
+        populateConcourseBuildUrls(json, repoName)
 
         chrome.storage.local.get(localStorageKey, data => {
           if (data !== null && data[repoName] === concourseData[repoName]) {
@@ -48,8 +50,7 @@ let initialiseConfig = () => {
       config[key] = data[key]
     }
 
-    fetch(`data/${config.concourseTeamName}.json`)
-      .then(response => { return response.json() })
+    getJSON({ url: `data/${config.concourseTeamName}.json` })
       .then(json => {
         concourseData = json
         initialiseRepoSelect()
@@ -62,7 +63,7 @@ let renderDiff = diffData => {
   diffContainer.innerHTML = ''
 
   if (diffData.commits.length === 0) {
-    diffContainer.innerHTML = 'No difference between deployments'
+    renderMessage('No difference between deployments')
   } else {
     for (var commit of diffData.commits) {
       let item = document.createElement('div')
@@ -73,9 +74,13 @@ let renderDiff = diffData => {
       item.appendChild(link)
       diffContainer.appendChild(item)
     }
+    diffContainer.style.display = 'table'
   }
+}
 
-  diffContainer.style.display = 'table'
+let renderMessage = message => {
+  diffContainer.innerHTML = message
+  diffContainer.style.display = 'block'
 }
 
 let populateConcourseBuildUrls = (json, repoName) => {
@@ -97,15 +102,13 @@ let fetchAndRenderDiff = repoName => {
         })
         .then(json => {
           concourseData[repoName].commits = json.commits
-          // Save to local storage and render
           chrome.storage.local.set({ localStorageKey : concourseData[repoName] }, () => {
             renderDiff(concourseData[repoName])
           })
         })
     })
     .catch(e => {
-      diffContainer.innerText = 'One or more environments has no finished build data'
-      diffContainer.style.display = 'table'
+      renderMessage('One or more environments has missing build data')
     })
 }
 
@@ -124,26 +127,23 @@ let fetchBuildCommitSha = (repoName, env) => {
   })
 }
 
+/**
+ * Make an GET request and return response as JSON.
+ */
 let getJSON = obj => {
-  return new Promise((resolve, reject) => {
-    let xhr = new XMLHttpRequest()
-    xhr.open('GET', obj.url, true)
-    if (obj.headers) {
-      Object.keys(obj.headers).forEach(key => {
-        xhr.setRequestHeader(key, obj.headers[key])
-      })
-    }
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText))
+  return fetch(obj.url, { method: 'GET', headers: obj.headers })
+    .then(response => {
+      if (response.ok) {
+        return response.json()
       } else {
-        reject(xhr.statusText)
+        throw new Error(`GET ${obj.url}, status: ${response.status}`)
       }
-    }
-    xhr.onerror = () => reject(xhr.statusText)
-    xhr.send()
-  })
+    })
+    .catch(e => {
+      renderMessage(`Error requesting data:\n${e}`)
+    })
 }
+
 
 let githubCompareUrl = (repoName, from, to) => {
   return `https://api.github.com/repos/${config.githubOrgName}/${repoName}/compare/${from}...${to}`
