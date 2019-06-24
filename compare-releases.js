@@ -8,6 +8,10 @@ let concourseData = {}
 let repoSelectEl = document.getElementById('repo-name')
 let diffContainer = document.getElementById('diff-container')
 
+/**
+ * Initialise this extension.
+ * Initialises config and UI and binds event handlers to the UI.
+ */
 let initialise = () => {
   initialiseConfig()
 
@@ -34,6 +38,10 @@ let initialise = () => {
   }
 }
 
+/**
+ * Initialise the select element allowing the user to choose a team project to diff.
+ * Data comes from ./data/<concourse team name>.json config.
+ */
 let initialiseRepoSelect = () => {
   Object.keys(concourseData).forEach(key => {
     let selectOption = document.createElement('option')
@@ -43,6 +51,11 @@ let initialiseRepoSelect = () => {
   })
 }
 
+/**
+ * Initialise config stored in the Chrome extension local storage if any.
+ * Redirects to the options page if this is absent.
+ * Gets team specific config containing deploy pipeline steps to diff.
+ */
 let initialiseConfig = () => {
   chrome.storage.local.get(configKeys, (data) => {
     for (var key of configKeys) {
@@ -58,6 +71,9 @@ let initialiseConfig = () => {
   })
 }
 
+/**
+ * Render the diff data to the UI.
+ */
 let renderDiff = diffData => {
   let truncate = (str) => { return str.substring(0, 70) + '...' }
   diffContainer.innerHTML = ''
@@ -78,11 +94,17 @@ let renderDiff = diffData => {
   }
 }
 
+/**
+ * Render a message to the UI.
+ */
 let renderMessage = message => {
   diffContainer.innerHTML = message
   diffContainer.style.display = 'block'
 }
 
+/**
+ * Fetch the last finished build URLs from Concourse API per environment.
+ */
 let populateConcourseBuildUrls = (json, repoName) => {
   for (var env of environments) {
     let job = json.find((item) => { return item.name === concourseData[repoName][env].name })
@@ -92,6 +114,10 @@ let populateConcourseBuildUrls = (json, repoName) => {
   }
 }
 
+/**
+ * Fetch the diff (log of commits) from Github API using the SHAs
+ * specified by Concourse for each environment.
+ */
 let fetchAndRenderDiff = repoName => {
   let promises = environments.map(env => fetchBuildCommitSha(repoName, env))
   Promise.all(promises)
@@ -112,6 +138,9 @@ let fetchAndRenderDiff = repoName => {
     })
 }
 
+/**
+ * Fetch the commit SHA from Github API as specified by Concourse.
+ */
 let fetchBuildCommitSha = (repoName, env) => {
   return new Promise((resolve, reject) => {
     let buildUrl = concourseData[repoName][env].buildUrl
@@ -129,6 +158,7 @@ let fetchBuildCommitSha = (repoName, env) => {
 
 /**
  * Make an GET request and return response as JSON.
+ * Renders a message if request was unsuccessful.
  */
 let getJSON = obj => {
   return fetch(obj.url, { method: 'GET', headers: obj.headers })
@@ -144,9 +174,12 @@ let getJSON = obj => {
     })
 }
 
-
+/**
+ * Returns a comparison of changes for a Github repository.
+ */
 let githubCompareUrl = (repoName, from, to) => {
   return `https://api.github.com/repos/${config.githubOrgName}/${repoName}/compare/${from}...${to}`
 }
 
+// Call initialise on the extension.
 initialise()
